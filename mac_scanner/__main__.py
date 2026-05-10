@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -24,6 +26,17 @@ from rapidfuzz import fuzz
 
 from . import capture, config
 from .input_monitor import HumanInputMonitor
+from .input_sender import (
+    AntiIdleConfig,
+    AntiIdleSender,
+    AutoGrabConfig,
+    AutoGrabber,
+    activate_remote_play,
+    auto_grab,
+    frontmost_application,
+    is_accessibility_trusted,
+    send_keypress,
+)
 from .matcher import find_spawn_event, parse_with_trace
 from .notify import Notifier, TelegramBot, macos_notify
 from .ocr import OCREngine, get_engine
@@ -52,7 +65,15 @@ def _setup_file_logger() -> logging.Logger:
 
 
 class ScannerApp:
-    def __init__(self, *, headless: bool = False, calibration: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        headless: bool = False,
+        calibration: bool = False,
+        anti_idle: bool = False,
+        anti_idle_interval: float | None = None,
+        auto_grab_on_hit: bool = False,
+    ) -> None:
         self._headless = headless
         self._logger = _setup_file_logger()
         self._logger.info("=" * 60)
@@ -77,6 +98,33 @@ class ScannerApp:
 
         self._input_monitor = HumanInputMonitor()
 
+        anti_idle_enabled = anti_idle or config.ANTI_IDLE_ENABLED
+        anti_idle_cfg = AntiIdleConfig.from_config_module()
+        if anti_idle_interval is not None:
+            anti_idle_cfg = AntiIdleConfig(
+                key=anti_idle_cfg.key,
+                interval_seconds=float(anti_idle_interval),
+                focus_remote_play=anti_idle_cfg.focus_remote_play,
+                hold_seconds=anti_idle_cfg.hold_seconds,
+                human_grace_seconds=anti_idle_cfg.human_grace_seconds,
+            )
+        self._anti_idle = AntiIdleSender(
+            anti_idle_cfg,
+            human_monitor=self._input_monitor,
+            on_log=self._log,
+        )
+        self._anti_idle_initial_enabled = anti_idle_enabled
+
+        auto_grab_cfg = AutoGrabConfig.from_config_module()
+        self._auto_grabber = AutoGrabber(
+            auto_grab_cfg,
+            human_monitor=self._input_monitor,
+            on_log=self._log,
+        )
+        self._auto_grab_on_hit: bool = (
+            auto_grab_on_hit or config.AUTO_GRAB_ON_HIT_ENABLED
+        )
+
         self._region: capture.Region | None = None
         self._region_source = "none"
         self._region_lock = threading.Lock()
@@ -92,6 +140,8 @@ class ScannerApp:
 
         self._grabber: capture.ScreenGrabber | None = None
         self._capture_thread: threading.Thread | None = None
+
+        self._caffeinate_proc: subprocess.Popen[bytes] | None = None
 
         self._app: ControlApp | None
         if headless:
@@ -127,6 +177,20 @@ class ScannerApp:
             self._log("[init] headless mode — scanner will start immediately, Ctrl+C to quit")
             if calibration:
                 self._log("[init] calibration logging enabled")
+        if anti_idle_enabled:
+            self._log(
+                f"[init] anti-idle armed — will send {anti_idle_cfg.key!r} every "
+                f"{anti_idle_cfg.interval_seconds:.0f}s "
+                f"(focus_remote_play={anti_idle_cfg.focus_remote_play})"
+            )
+        if self._auto_grab_on_hit:
+            self._log(
+                f"[init] auto-grab-on-hit armed — on every card hit, will "
+                f"spam {auto_grab_cfg.key!r} for "
+                f"{auto_grab_cfg.duration_seconds:.1f}s "
+                f"(delay={auto_grab_cfg.delay_seconds:.2f}s, ~"
+                f"{int(auto_grab_cfg.duration_seconds / max(auto_grab_cfg.delay_seconds, 0.001))} presses)"
+            )
 
     # ── infrastructure ──
 
@@ -253,6 +317,11 @@ class ScannerApp:
                 self._stop_workers.wait(0.05); continue
             if time.perf_counter() - self._last_hit_at < config.COOLDOWN_AFTER_HIT_SECONDS:
                 self._stop_workers.wait(0.05); continue
+            if self._auto_grabber.is_active:
+                # An auto-grab burst is still spamming the interact key.
+                # Skip OCR so we don't re-detect the same card and queue
+                # a second burst the instant this one finishes.
+                self._stop_workers.wait(0.1); continue
 
             with self._region_lock:
                 region = self._region
@@ -297,6 +366,7 @@ class ScannerApp:
 
             fired = False
             seen_in_frame: set[tuple[str, str, str]] = set()
+            first_hit_label: str | None = None
             for match in sorted(trace.matches, key=lambda m: -m.score):
                 key = (match.tier, match.rarity, match.name)
                 if key in seen_in_frame:
@@ -309,9 +379,13 @@ class ScannerApp:
                     f"score={match.score:.0f} ocr={time.perf_counter()-t0:.2f}s"
                 )
                 self._notifier.card_detected(match.tier, match.rarity, match.name)
+                if first_hit_label is None:
+                    first_hit_label = f"{match.tier}/{match.rarity}/{match.name}"
                 fired = True
             if fired:
                 self._last_hit_at = time.perf_counter()
+                if self._auto_grab_on_hit and not self._auto_grabber.is_active:
+                    self._auto_grabber.grab_async(label=f"for {first_hit_label}")
 
             elapsed = time.perf_counter() - t0
             self._stop_workers.wait(max(0.0, config.CAPTURE_INTERVAL_SECONDS - elapsed))
@@ -411,9 +485,25 @@ class ScannerApp:
     # ── lifecycle ──
 
     def run(self) -> None:
+        if sys.platform == "darwin" and config.CAFFEINATE_DISPLAY:
+            caffeine = "/usr/bin/caffeinate"
+            try:
+                self._caffeinate_proc = subprocess.Popen(
+                    [caffeine, "-d", "-w", str(os.getpid())],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self._log("[caffeinate] display sleep suppressed (-d) while scanner runs")
+            except OSError as e:
+                self._log(f"[caffeinate] could not start: {e}")
+
         self._input_monitor.start()
         self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._capture_thread.start()
+        self._anti_idle.start()
+        if self._anti_idle_initial_enabled:
+            self._anti_idle.set_enabled(True)
         if self._telegram.enabled:
             self._telegram.start_polling()
 
@@ -426,10 +516,20 @@ class ScannerApp:
                 self._run_headless()
         finally:
             self._stop_workers.set()
+            self._anti_idle.stop()
             self._telegram.stop()
             self._input_monitor.stop()
             if self._grabber is not None:
                 self._grabber.close()
+            proc = self._caffeinate_proc
+            self._caffeinate_proc = None
+            if proc is not None:
+                try:
+                    if proc.poll() is None:
+                        proc.terminate()
+                        proc.wait(timeout=2.0)
+                except Exception:
+                    pass
 
     def _run_headless(self) -> None:
         """Auto-start the scanner and block until SIGINT/SIGTERM."""
@@ -486,7 +586,337 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
             "dumped). Useful with --headless for one-off diagnostics."
         ),
     )
+    p.add_argument(
+        "--no-caffeinate",
+        action="store_true",
+        help=(
+            "Do not run caffeinate -d (allow the display to sleep per "
+            "Energy settings). Default is on; disable globally with "
+            "MAC_SCANNER_CAFFEINATE=0."
+        ),
+    )
+    p.add_argument(
+        "--anti-idle",
+        action="store_true",
+        help=(
+            "Periodically synthesize a spacebar press to PS Remote Play "
+            "so the in-game character jumps and the UEFN island doesn't "
+            "kick you for being idle. Disabled by default. Interval "
+            "defaults to MAC_SCANNER_ANTI_IDLE_INTERVAL (300s = 5 min). "
+            "Requires Accessibility permission for the parent process."
+        ),
+    )
+    p.add_argument(
+        "--anti-idle-interval",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help=(
+            "Override how often the anti-idle key fires (default: "
+            "config.ANTI_IDLE_INTERVAL_SECONDS, 300s = 5 min)."
+        ),
+    )
+    p.add_argument(
+        "--send-space",
+        action="store_true",
+        help=(
+            "One-shot: focus PS Remote Play, synthesize ONE spacebar "
+            "press, and exit. Use this to verify Accessibility "
+            "permission and that the key is reaching the game."
+        ),
+    )
+    p.add_argument(
+        "--send-key",
+        type=str,
+        default=None,
+        metavar="KEY",
+        help=(
+            "Like --send-space but for an arbitrary key name (see "
+            "input_sender.KEY_CODES). Mutually exclusive with --send-space."
+        ),
+    )
+    p.add_argument(
+        "--send-count",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Repeat --send-key/--send-space N times with --send-delay "
+            "between each. Useful for visually confirming the game is "
+            "receiving the keystroke (e.g. several jumps in a row)."
+        ),
+    )
+    p.add_argument(
+        "--send-delay",
+        type=float,
+        default=0.75,
+        metavar="SECONDS",
+        help="Delay between repeats when --send-count > 1 (default 0.75s).",
+    )
+    p.add_argument(
+        "--diagnose",
+        action="store_true",
+        help=(
+            "Run all anti-idle preflight checks and print exact "
+            "remediation steps: Accessibility permission, Remote Play "
+            "window discovery, focus activation, and a verified "
+            "keystroke. Run this FIRST if --send-space appears to "
+            "succeed but the in-game character doesn't move."
+        ),
+    )
+    p.add_argument(
+        "--auto-grab",
+        action="store_true",
+        help=(
+            "One-shot: focus PS Remote Play, spam the configured "
+            "auto-grab key (default 'E', for the in-game pickup/"
+            "interact action) for MAC_SCANNER_AUTO_GRAB_DURATION "
+            "seconds at MAC_SCANNER_AUTO_GRAB_DELAY-second intervals, "
+            "then exit. Disabled by default; use this to test or to "
+            "force a manual grab burst."
+        ),
+    )
+    p.add_argument(
+        "--auto-grab-on-hit",
+        action="store_true",
+        help=(
+            "Run normally, but EVERY card hit automatically triggers "
+            "an auto-grab burst — spam the interact key for 3 s at "
+            "0.1 s intervals (configurable via MAC_SCANNER_AUTO_GRAB_* "
+            "env vars). Use with care: this turns the scanner from "
+            "notify-only into an automated collector."
+        ),
+    )
+    p.add_argument(
+        "--auto-grab-duration",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help=(
+            "Override the total auto-grab burst length (default 3.0). "
+            "Affects both --auto-grab one-shots and --auto-grab-on-hit."
+        ),
+    )
+    p.add_argument(
+        "--auto-grab-delay",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help=(
+            "Override the per-press delay inside an auto-grab burst "
+            "(default 0.1)."
+        ),
+    )
+    p.add_argument(
+        "--auto-grab-key",
+        type=str,
+        default=None,
+        metavar="KEY",
+        help=(
+            "Override the key spammed by auto-grab (default 'e'). "
+            "Must be in input_sender.KEY_CODES."
+        ),
+    )
     return p.parse_args(argv)
+
+
+def _run_send_key_oneshot(key: str, count: int = 1, delay: float = 0.75) -> int:
+    """Activate Remote Play, post key(s), exit. Smoke test path."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    ok_any = False
+    try:
+        for i in range(max(1, count)):
+            ok = send_keypress(
+                key,
+                focus_remote_play=config.ANTI_IDLE_FOCUS_REMOTE_PLAY,
+                hold_seconds=config.ANTI_IDLE_KEY_HOLD_SECONDS,
+            )
+            ok_any = ok_any or ok
+            print(f"send_keypress({key!r}) [{i+1}/{count}] returned {ok}")
+            if i + 1 < count:
+                time.sleep(delay)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    except RuntimeError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 3
+    return 0 if ok_any else 1
+
+
+def _run_auto_grab_oneshot(
+    key: str | None,
+    duration: float | None,
+    delay: float | None,
+) -> int:
+    """One-shot CLI path for `--auto-grab`. Spam, then exit."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    cfg = AutoGrabConfig.from_config_module()
+    cfg = AutoGrabConfig(
+        key=(key or cfg.key).lower(),
+        duration_seconds=cfg.duration_seconds if duration is None else float(duration),
+        delay_seconds=cfg.delay_seconds if delay is None else float(delay),
+        hold_seconds=cfg.hold_seconds,
+        focus_remote_play=cfg.focus_remote_play,
+    )
+    try:
+        count = auto_grab(
+            cfg.key,
+            duration_seconds=cfg.duration_seconds,
+            delay_seconds=cfg.delay_seconds,
+            hold_seconds=cfg.hold_seconds,
+            focus_remote_play=cfg.focus_remote_play,
+        )
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    except RuntimeError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 3
+    print(
+        f"auto_grab({cfg.key!r}, duration={cfg.duration_seconds}s, "
+        f"delay={cfg.delay_seconds}s) fired {count} presses"
+    )
+    return 0 if count > 0 else 1
+
+
+def _run_diagnose() -> int:
+    """Walk every anti-idle prerequisite and print actionable output.
+
+    Order matters: cheap, local conditions first (process trust, Quartz
+    import) before anything that affects the user's UI (activating
+    Remote Play, posting a key).
+
+    On macOS Sonoma+ a non-frontmost terminal CANNOT pull focus to
+    another app — `activateWithOptions_` returns True but the OS keeps
+    your Terminal frontmost. That is the *expected* OS behavior, NOT a
+    misconfiguration. The diagnostic treats "Remote Play already
+    frontmost" as the green-light condition, and warns (but does not
+    fail) when focus-stealing is blocked because that case still works
+    in production — the user keeps Remote Play focused while AFK and
+    the anti-idle press lands every time.
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    issues: list[str] = []
+    notes: list[str] = []
+    print("─── mac_scanner anti-idle diagnostics ───")
+    print(f"  python   : {sys.executable}")
+    print(f"  platform : {sys.platform}")
+
+    trusted = is_accessibility_trusted()
+    print(f"  AXIsProcessTrusted: {trusted}")
+    if not trusted:
+        issues.append(
+            "Accessibility is NOT granted. CGEventPost will silently drop "
+            "every key event. Fix:\n"
+            f"    1. Open System Settings → Privacy & Security → Accessibility.\n"
+            f"    2. Click '+' and add: {sys.executable}\n"
+            "       (or add your Terminal / iTerm / Cursor app instead — child\n"
+            "        processes inherit the grant).\n"
+            "    3. Toggle the entry ON. If it was already there, REMOVE and re-add\n"
+            "       it (macOS pins by file inode, which changes when the venv is\n"
+            "       recreated).\n"
+            "    4. Quit the terminal completely (⌘Q) and reopen, then rerun this."
+        )
+
+    try:
+        import Quartz  # type: ignore[import]  # noqa: F401
+        print("  Quartz import: ok")
+    except ImportError as e:
+        print(f"  Quartz import: FAIL ({e})")
+        issues.append(
+            "PyObjC Quartz is not importable. Run "
+            "`pip install -r requirements_mac.txt` inside the venv."
+        )
+
+    from . import capture
+    region = capture.find_remote_play_window()
+    print(f"  Remote Play window: {region}")
+    if region is None:
+        issues.append(
+            "PS Remote Play window not found by CGWindowList. Open the "
+            "Remote Play app, connect to your PS5, and make sure the "
+            "window is on-screen (not minimized / hidden behind Stage "
+            "Manager)."
+        )
+
+    if region is not None:
+        before = frontmost_application()
+        before_name = before["name"] if before else None
+        wanted_lower = {n.lower() for n in config.REMOTE_PLAY_OWNER_NAMES}
+        already_frontmost = (
+            before is not None and before_name.lower() in wanted_lower
+        )
+        print(f"  frontmost (before activate): {before}")
+        if already_frontmost:
+            print(
+                "  activation test: SKIPPED — Remote Play is already "
+                "frontmost. The anti-idle press will land directly; "
+                "no focus transition needed."
+            )
+        else:
+            activated = activate_remote_play()
+            after = frontmost_application()
+            print(f"  activate_remote_play: {activated}")
+            print(f"  frontmost (after activate):  {after}")
+            if not activated:
+                # The most common cause on Sonoma+ is focus-stealing
+                # prevention from a foreground Terminal. That's a
+                # USER-LEVEL constraint, not a code bug.
+                notes.append(
+                    "macOS prevented this Terminal/IDE from pulling focus to "
+                    "PS Remote Play. This is normal in Sonoma/Sequoia: an app "
+                    "in the background cannot steal focus from your foreground "
+                    "app. For anti-idle to work in production:\n"
+                    "    * Click PS Remote Play once so it's the frontmost window,\n"
+                    "      THEN switch back to the terminal and start --anti-idle.\n"
+                    "      Once Remote Play has focus, the anti-idle loop keeps\n"
+                    "      it that way.\n"
+                    "    * The OCR side of the scanner already requires Remote\n"
+                    "      Play to be visible, so this is the normal setup anyway.\n"
+                    "    * (Optional, for AppleScript fallback to work too) System\n"
+                    "      Settings → Privacy & Security → Automation → enable\n"
+                    "      PS Remote Play under your terminal/IDE entry."
+                )
+
+    if not issues:
+        print(
+            "\nAll required preflight checks passed. Posting a single "
+            "spacebar now — watch the in-game character. If it doesn't "
+            "jump, the most likely remaining cause is that PS Remote "
+            "Play's keyboard input is disabled or its space-key map "
+            "isn't bound to the X (Cross) button. See the 'Anti-idle' "
+            "section of README.md."
+        )
+        send_keypress(
+            "space",
+            focus_remote_play=config.ANTI_IDLE_FOCUS_REMOTE_PLAY,
+            hold_seconds=config.ANTI_IDLE_KEY_HOLD_SECONDS,
+        )
+
+    print("\n─── result ───")
+    if not issues and not notes:
+        print("OK — no preflight issues detected.")
+        return 0
+    if not issues:
+        print("OK with notes — anti-idle will work in production:")
+        for i, msg in enumerate(notes, 1):
+            print(f"\n  [note {i}] {msg}")
+        return 0
+    for i, msg in enumerate(issues, 1):
+        print(f"\n[{i}] {msg}")
+    for i, msg in enumerate(notes, 1):
+        print(f"\n[note {i}] {msg}")
+    return 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -494,7 +924,42 @@ def main(argv: list[str] | None = None) -> int:
         print("mac_scanner is macOS-only. Use card_scanner.py on Windows.", file=sys.stderr)
         return 2
     args = _parse_args(sys.argv[1:] if argv is None else argv)
-    ScannerApp(headless=args.headless, calibration=args.calibration).run()
+
+    if args.diagnose:
+        return _run_diagnose()
+    if args.send_space and args.send_key:
+        print("error: --send-space and --send-key are mutually exclusive", file=sys.stderr)
+        return 2
+    if args.send_space:
+        return _run_send_key_oneshot("space", count=args.send_count, delay=args.send_delay)
+    if args.send_key is not None:
+        return _run_send_key_oneshot(args.send_key, count=args.send_count, delay=args.send_delay)
+    if args.auto_grab:
+        return _run_auto_grab_oneshot(
+            key=args.auto_grab_key,
+            duration=args.auto_grab_duration,
+            delay=args.auto_grab_delay,
+        )
+
+    # Apply optional auto-grab overrides into the config module so the
+    # ScannerApp picks them up when it constructs AutoGrabConfig.
+    if args.auto_grab_key is not None:
+        config.AUTO_GRAB_KEY = args.auto_grab_key.lower()
+    if args.auto_grab_duration is not None:
+        config.AUTO_GRAB_DURATION_SECONDS = float(args.auto_grab_duration)
+    if args.auto_grab_delay is not None:
+        config.AUTO_GRAB_DELAY_SECONDS = float(args.auto_grab_delay)
+
+    if args.no_caffeinate:
+        config.CAFFEINATE_DISPLAY = False
+
+    ScannerApp(
+        headless=args.headless,
+        calibration=args.calibration,
+        anti_idle=args.anti_idle,
+        anti_idle_interval=args.anti_idle_interval,
+        auto_grab_on_hit=args.auto_grab_on_hit,
+    ).run()
     return 0
 
 

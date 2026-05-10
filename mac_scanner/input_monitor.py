@@ -1,11 +1,14 @@
 """Pause-on-human-input monitor.
 
-We never synthesize input, but pausing OCR while the user is actively
-typing or moving the mouse can keep CPU load down during real
-interaction. This is a soft, opt-in feature — it ships disabled and
-must be turned on in the UI checkbox. Toggling it has no effect on
-correctness, only on capture cadence while you're using the keyboard
-or mouse.
+The capture loop uses this to optionally back off while the user is
+actively typing or moving the mouse. The anti-idle sender uses it to
+check whether the user has been active recently (and therefore doesn't
+need a synthetic keypress).
+
+We never pause for our OWN synthetic key events: the anti-idle module
+calls `mark_synth_window(duration)` right before posting a key, and
+key events landing inside that window are ignored. Mouse events are
+never produced by us, so they always count.
 """
 
 from __future__ import annotations
@@ -17,7 +20,17 @@ from pynput import keyboard as pkeyboard, mouse as pmouse
 
 
 class HumanInputMonitor:
-    """Sets `is_paused` True for `quiet_after` seconds after any input."""
+    """Tracks recent real human input.
+
+    Public state:
+      * `is_paused` — True for `quiet_after` seconds after any real
+        input, *and* only when `set_enabled(True)` was called.
+        Capture loop checks this to decide whether to skip a frame.
+      * `seconds_since_last_real_input()` — None until we've seen any
+        input, otherwise wall-clock seconds since the last touch.
+        Used by the anti-idle sender to skip while you're really
+        playing.
+    """
 
     def __init__(self, quiet_after: float = 1.0) -> None:
         self._quiet_after = quiet_after
@@ -31,6 +44,9 @@ class HumanInputMonitor:
         # Default OFF: typing or moving the mouse should NOT pause OCR
         # unless the user explicitly enables the toggle in the UI.
         self._enabled = False
+        # Time until which our own synthesized key events should be
+        # ignored. The anti-idle sender bumps this before each post.
+        self._synth_until: float = 0.0
 
     @property
     def is_paused(self) -> bool:
@@ -43,20 +59,45 @@ class HumanInputMonitor:
             if not on:
                 self._is_paused = False
 
-    def _touch(self) -> None:
+    def mark_synth_window(self, duration: float) -> None:
+        """Ignore key events for the next `duration` seconds.
+
+        The anti-idle sender calls this immediately before posting a
+        synthetic key, because pynput's event tap sees the key just
+        like a real keystroke would.
+        """
+        with self._lock:
+            self._synth_until = max(
+                self._synth_until, time.perf_counter() + duration
+            )
+
+    def seconds_since_last_real_input(self) -> float | None:
+        with self._lock:
+            if self._last_input_at == 0.0:
+                return None
+            return time.perf_counter() - self._last_input_at
+
+    def _touch_key(self) -> None:
+        with self._lock:
+            if time.perf_counter() < self._synth_until:
+                return
+            self._last_input_at = time.perf_counter()
+            self._is_paused = True
+
+    def _touch_mouse(self) -> None:
         with self._lock:
             self._last_input_at = time.perf_counter()
             self._is_paused = True
 
     def _on_move(self, _x, _y) -> None:
-        self._touch()
+        self._touch_mouse()
 
     def _on_click(self, _x, _y, _button, pressed) -> None:
         if pressed:
-            self._touch()
+            self._touch_mouse()
 
     def _on_key(self, _key) -> None:
-        self._touch()
+        self._touch_key()
 
     def _resume_loop(self) -> None:
         while not self._stop.is_set():

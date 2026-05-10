@@ -60,16 +60,28 @@ ALL_CARD_NAMES: frozenset[str] = frozenset({
 # TEMP (testing): notify for ANY card whose rarity reads as RARE,
 # under any tier. Restore the LEGENDARY-only bucket below when done.
 TARGETS_INITIAL = {
-    "DIAMOND": {
-        "COMMON":    ALL_CARD_NAMES,
-        "RARE":      ALL_CARD_NAMES,
-        "EPIC":      ALL_CARD_NAMES,
-        "LEGENDARY": ALL_CARD_NAMES,
-    },
+ #   "DEFAULT": {
+ #       "COMMON":    ALL_CARD_NAMES,
+ #       "RARE":      ALL_CARD_NAMES,
+ #       "EPIC":      ALL_CARD_NAMES,
+ #       "LEGENDARY": ALL_CARD_NAMES,
+ #   },
+ #   "GOLD": {
+ #       "COMMON":    ALL_CARD_NAMES,
+ #       "RARE":      ALL_CARD_NAMES,
+ #       "EPIC":      ALL_CARD_NAMES,
+ #       "LEGENDARY": ALL_CARD_NAMES,
+ #   },
+ #   "DIAMOND": {
+ #       "COMMON":    ALL_CARD_NAMES,
+ #       "RARE":      ALL_CARD_NAMES,
+ #       "EPIC":      ALL_CARD_NAMES,
+ #       "LEGENDARY": ALL_CARD_NAMES,
+ #   },
     "RAINBOW": {
-        "COMMON":    ALL_CARD_NAMES,
-        "RARE":      ALL_CARD_NAMES,
-        "EPIC":      ALL_CARD_NAMES,
+ #       "COMMON":    ALL_CARD_NAMES,
+ #       "RARE":      ALL_CARD_NAMES,
+ #       "EPIC":      ALL_CARD_NAMES,
         "LEGENDARY": ALL_CARD_NAMES,
     },
 }
@@ -93,8 +105,12 @@ COOLDOWN_NOTIFY_SECONDS: float = 30.0
 # Telegram message is sent for them.
 ENABLE_SPAWN_NOTIFICATIONS: bool = False
 
-# After ANY hit, sleep this long before scanning again.
-COOLDOWN_AFTER_HIT_SECONDS: float = 2.5
+# After ANY hit, sleep this long before scanning again. Defaults to 0
+# because we never synthesize a keypress on detection (notification only),
+# so there's no in-game animation to wait for. Per-name spamming is
+# already prevented by COOLDOWN_NOTIFY_SECONDS above. Bump this up only
+# if you find the scanner is over-firing on the same physical card.
+COOLDOWN_AFTER_HIT_SECONDS: float = 0.0
 
 # Approximate cadence between captures. Bumped up because the default
 # region is now the entire Remote Play window (Vision OCR per frame is
@@ -127,6 +143,13 @@ ENABLE_MACOS_TOAST: bool = (
     os.environ.get("MAC_SCANNER_TOAST", "").lower()
     in ("1", "true", "yes", "on")
 )
+
+# While the full scanner app is running, run `caffeinate -d` so the
+# display does not sleep. Opt out with MAC_SCANNER_CAFFEINATE=0 or
+# `python -m mac_scanner --no-caffeinate`.
+CAFFEINATE_DISPLAY: bool = os.environ.get(
+    "MAC_SCANNER_CAFFEINATE", "1"
+).lower() in ("1", "true", "yes", "on")
 
 # Bicubic upscale factor applied to the captured frame before OCR.
 # The card rarity labels are very small (~15-25 captured pixels tall)
@@ -164,3 +187,103 @@ REMOTE_PLAY_OWNER_NAMES: tuple[str, ...] = (
     "Remote Play",
     "RemotePlay",
 )
+
+# ─── Anti-idle keypress ──────────────────────────────────────────────────────
+
+# Periodically synthesize a key down/up so the in-game character moves
+# enough to stop the "idle kick" timer. The key is sent via CoreGraphics
+# (`CGEventCreateKeyboardEvent` / `CGEventPost`), which the OS routes
+# to whichever app is frontmost — so PS Remote Play must be activated
+# first (handled in input_sender.py when `ANTI_IDLE_FOCUS_REMOTE_PLAY`).
+#
+# Requirements:
+#   * Accessibility permission for the terminal / Python launcher
+#     (System Settings → Privacy & Security → Accessibility).
+#   * Remote Play visible and able to come to the foreground.
+
+# Toggle: enable the anti-idle loop at startup. Headless or GUI mode
+# can flip this with `--anti-idle` / a UI checkbox later.
+ANTI_IDLE_ENABLED: bool = (
+    os.environ.get("MAC_SCANNER_ANTI_IDLE", "").lower()
+    in ("1", "true", "yes", "on")
+)
+
+# Which key to press. Looked up in input_sender.KEY_CODES (currently
+# "space", "return", "enter", "escape", "tab", "up", "down", "left",
+# "right"). Spacebar = "jump" in Droid Tycoon, which is enough motion
+# to reset the idle-kick timer without affecting gameplay much.
+ANTI_IDLE_KEY: str = os.environ.get("MAC_SCANNER_ANTI_IDLE_KEY", "space").lower()
+
+# How often to send the keypress. Default is 5 minutes (300s). The
+# Droid Tycoon idle-kick fires somewhere around the 5-minute mark, so
+# this stays just under the threshold without spamming the game with
+# constant jumps.
+ANTI_IDLE_INTERVAL_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_ANTI_IDLE_INTERVAL", "300")
+)
+
+# Bring PS Remote Play to the foreground before posting the key. Set
+# this to 0 if you intend to run the scanner with Remote Play already
+# permanently focused and don't want stolen focus events.
+ANTI_IDLE_FOCUS_REMOTE_PLAY: bool = os.environ.get(
+    "MAC_SCANNER_ANTI_IDLE_FOCUS", "1"
+).lower() in ("1", "true", "yes", "on")
+
+# Skip the synthetic keypress if the user has touched the real
+# keyboard / mouse within this many seconds — the user is actively
+# playing and clearly not idle. Note: gamepad input on the DualSense
+# is NOT tracked here (pynput only sees HID keyboard / mouse), so the
+# keypress will still fire while you're playing on the controller.
+# That's by design: the whole point is to keep the session alive
+# while you're "AFK on the couch".
+ANTI_IDLE_HUMAN_GRACE_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_ANTI_IDLE_GRACE", "10")
+)
+
+# Down→up duration of the synthesized key. ~50 ms is short enough that
+# the game registers it as a tap but long enough that PS Remote Play's
+# input pipeline doesn't drop it.
+ANTI_IDLE_KEY_HOLD_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_ANTI_IDLE_HOLD", "0.05")
+)
+
+# ─── Auto-grab keypress burst ────────────────────────────────────────────────
+#
+# On demand (`--auto-grab` one-shot) or on card detection (`--auto-grab-on-hit`),
+# spam a key — default "E", which is the in-game pickup/interact action in
+# Droid Tycoon — for AUTO_GRAB_DURATION_SECONDS at AUTO_GRAB_DELAY_SECONDS
+# intervals. ~30 presses by default, enough to grab a card even when the
+# interact prompt is briefly hidden by an animation.
+
+# Toggle: enable the on-hit auto-grab in the running scanner loop.
+# `--auto-grab-on-hit` does the same thing at CLI level.
+AUTO_GRAB_ON_HIT_ENABLED: bool = (
+    os.environ.get("MAC_SCANNER_AUTO_GRAB_ON_HIT", "").lower()
+    in ("1", "true", "yes", "on")
+)
+
+# Key to spam. Looked up in input_sender.KEY_CODES.
+AUTO_GRAB_KEY: str = os.environ.get("MAC_SCANNER_AUTO_GRAB_KEY", "e").lower()
+
+# Total burst duration.
+AUTO_GRAB_DURATION_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_AUTO_GRAB_DURATION", "3.0")
+)
+
+# Gap between consecutive presses inside the burst.
+AUTO_GRAB_DELAY_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_AUTO_GRAB_DELAY", "0.1")
+)
+
+# Down→up hold time per press. Kept short (30 ms) so the per-iteration
+# overhead doesn't eat into AUTO_GRAB_DELAY_SECONDS.
+AUTO_GRAB_HOLD_SECONDS: float = float(
+    os.environ.get("MAC_SCANNER_AUTO_GRAB_HOLD", "0.03")
+)
+
+# Bring PS Remote Play to the foreground before the burst starts. Same
+# semantics as ANTI_IDLE_FOCUS_REMOTE_PLAY — does not re-activate
+# between individual presses.
+AUTO_GRAB_FOCUS_REMOTE_PLAY: bool = os.environ.get(
+    "MAC_SCANNER_AUTO_GRAB_FOCUS", "1"
+).lower() in ("1", "true", "yes", "on")

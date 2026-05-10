@@ -4,7 +4,7 @@
 ![macOS](https://img.shields.io/badge/macOS-13%2B%20(Apple%20Silicon)-black.svg)
 ![OCR](https://img.shields.io/badge/OCR-Apple%20Vision-green.svg)
 
-macOS assistant that watches **PS Remote Play** (your PS5 stream), runs **Apple Vision** OCR on each frame, and alerts you when a configured **tier / rarity / card name** appears so you can grab it on the controller. **Notify-only**: it does not synthesize keystrokes (Remote Play ignores background automation reliably).
+macOS assistant that watches **PS Remote Play** (your PS5 stream), runs **Apple Vision** OCR on each frame, and alerts you when a configured **tier / rarity / card name** appears so you can grab it on the controller. **Detection is notify-only**: card hits never push input back into the game. There is an **optional anti-idle keypress** (default: spacebar = jump) that can be enabled separately to keep the UEFN island from kicking you for inactivity — see [Anti-idle keypress](#anti-idle-keypress) below.
 
 This repository ships the **`mac_scanner/`** package and **`requirements_mac.txt`**. An older Windows Tkinter + chroma-key overlay with in-game automation lived in `card_scanner.py`; that file is **not** in this tree anymore, so day-to-day use here is macOS-only.
 
@@ -70,6 +70,111 @@ python -m mac_scanner
 
 **Spawn** lines (“X spawned at …”) are still **detected and logged** as `[spawn]` for debugging, but **user-visible spawn alerts are disabled** in `mac_scanner/config.py` (`ENABLE_SPAWN_NOTIFICATIONS = False`) so only rack/card detections notify.
 
+### Anti-idle keypress
+
+The Droid Tycoon UEFN island kicks idle players after a few minutes. To stay logged in while you're not actively at the controller, the scanner can periodically synthesize a key down/up event (default: **spacebar**, which is "jump" in-game and doesn't move the character meaningfully). The press is posted via CoreGraphics (`CGEventCreateKeyboardEvent` / `CGEventPost`), and PS Remote Play is activated to the foreground immediately before each send so the OS routes the keystroke into the game.
+
+This is **opt-in and disabled by default** — you must pass `--anti-idle` or set `MAC_SCANNER_ANTI_IDLE=1`. Detection still never injects input. Default cadence is **once every 5 minutes** (300 s), just under the in-game idle-kick threshold.
+
+```bash
+# Send one spacebar press right now, then exit (smoke test).
+python -m mac_scanner --send-space
+
+# Run normally, with the anti-idle loop firing every 5 minutes.
+python -m mac_scanner --anti-idle
+
+# Custom interval (seconds) and headless:
+python -m mac_scanner --headless --anti-idle --anti-idle-interval 240
+
+# Different key (anything in input_sender.KEY_CODES — space, return,
+# escape, tab, arrow keys, w/a/s/d, etc.):
+MAC_SCANNER_ANTI_IDLE_KEY=w python -m mac_scanner --anti-idle
+```
+
+Tuning knobs (all overridable from environment, see `mac_scanner/config.py`):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MAC_SCANNER_ANTI_IDLE` | off | Auto-enable the loop at startup (`--anti-idle` does the same). |
+| `MAC_SCANNER_ANTI_IDLE_KEY` | `space` | Key to send. Must be in `input_sender.KEY_CODES`. |
+| `MAC_SCANNER_ANTI_IDLE_INTERVAL` | `300` | Seconds between presses (5 min, just under the UEFN island idle-kick threshold). |
+| `MAC_SCANNER_ANTI_IDLE_FOCUS` | `1` | Activate PS Remote Play via AppleScript before each post. Disable if you keep Remote Play permanently foregrounded. |
+| `MAC_SCANNER_ANTI_IDLE_GRACE` | `10` | Skip a press if the real keyboard/mouse has been touched within this many seconds. Gamepad input on the DualSense is **not** observable to pynput, so the press still fires while you're playing on the controller. |
+| `MAC_SCANNER_ANTI_IDLE_HOLD` | `0.05` | Down→up duration. Remote Play occasionally drops 0-ms taps; 50 ms is reliable. |
+
+**Permissions:** anti-idle needs the same **Accessibility** grant the OCR side already uses. Focus is brought to Remote Play via `NSRunningApplication.activateWithOptions_`, which works under the existing Accessibility grant; an AppleScript `osascript` fallback exists for older macOS versions but requires the separate **Automation** permission (System Settings → Privacy & Security → Automation → enable PS Remote Play under your terminal/IDE).
+
+**Focus-stealing on macOS Sonoma+:** an app in the background **cannot** pull focus to another app, by OS policy. If you run `--diagnose` while your Terminal is the frontmost window, you'll see `activateWithOptions_ returned True but frontmost is 'Terminal'` — that's macOS refusing the focus theft, not a bug. The fix is to click PS Remote Play once so it's the frontmost window, *then* start the scanner. Once Remote Play has focus, the anti-idle loop keeps it there and every press lands. The OCR side of the scanner already requires Remote Play to be visible, so this is the natural setup anyway.
+
+**If `--send-space` says it succeeded but the character didn't jump, run the diagnostic first:**
+
+```bash
+python -m mac_scanner --diagnose
+```
+
+It walks every prerequisite and prints exact remediation if any fails (Accessibility not granted, Remote Play window not found, activation blocked, etc.). When all checks pass, the line you want to see is:
+
+```
+sent keypress 'space' (... activated=True, frontmost=PS Remote Play, trusted=True)
+```
+
+If you see that and the character still doesn't move, the issue is no longer in this codebase — PS Remote Play received the key but its mapping or the PS5 game isn't translating it into a jump. Likely causes:
+
+* **PS Remote Play keyboard input is disabled.** Open Remote Play → Settings → Controllers / Keyboard and make sure keyboard input is enabled.
+* **The PS Remote Play key map doesn't bind space → X (Cross).** Default on recent versions does, but check the configurator. Whatever key is mapped to X will work — point `MAC_SCANNER_ANTI_IDLE_KEY` at it.
+* **Fortnite is on a menu screen, in a cinematic, or in a state where X does nothing.** Make sure you're in normal gameplay before testing.
+
+Easy way to see whether keystrokes are landing: fire a burst of presses and watch the character jump several times in a row:
+
+```bash
+python -m mac_scanner --send-space --send-count 5 --send-delay 0.5
+```
+
+End-to-end smoke test of the sender itself (CGEventPost → pynput round-trip, plus the synth-window suppression in `HumanInputMonitor`):
+
+```bash
+python scripts/test_input_sender.py
+```
+
+### Auto-grab burst
+
+Spams the in-game **pickup/interact** key (default: `E`) for a short window when invoked, useful for actually collecting a card rather than just being notified about it. **Off by default**, same as anti-idle — has to be enabled via CLI flag or env var.
+
+```bash
+# One-shot: fire a 3-second burst of E presses right now, then exit.
+# Use this to verify the keystroke is actually being received as
+# "interact" in-game (the prompt should be triggered repeatedly).
+python -m mac_scanner --auto-grab
+
+# Auto-collect mode: run the scanner, and whenever a target card is
+# detected, automatically fire the burst. Re-entry is suppressed,
+# OCR pauses while the burst is in flight.
+python -m mac_scanner --auto-grab-on-hit
+
+# Custom timing and key (e.g. spam "F" for 5 s at 0.05 s intervals):
+python -m mac_scanner --auto-grab \
+    --auto-grab-key f --auto-grab-duration 5 --auto-grab-delay 0.05
+```
+
+Defaults: **`E` key**, **3 s duration**, **0.1 s delay**, **0.03 s hold** — about 20–25 presses per burst depending on system scheduling overhead. Each burst:
+
+1. Activates PS Remote Play once (same NSRunningApplication path as anti-idle — Accessibility required).
+2. Posts `key down → hold → key up → delay`, in a tight loop, until the wall-clock deadline.
+3. Marks the synth-suppression window so `HumanInputMonitor` doesn't see the burst as real user input.
+
+Tuning knobs (env vars; see `mac_scanner/config.py`):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MAC_SCANNER_AUTO_GRAB_ON_HIT` | off | Auto-fire a burst when a target card is detected (`--auto-grab-on-hit` does the same). |
+| `MAC_SCANNER_AUTO_GRAB_KEY` | `e` | Key to spam. Must be in `input_sender.KEY_CODES`. |
+| `MAC_SCANNER_AUTO_GRAB_DURATION` | `3.0` | Total burst length in seconds. |
+| `MAC_SCANNER_AUTO_GRAB_DELAY` | `0.1` | Gap between consecutive presses. |
+| `MAC_SCANNER_AUTO_GRAB_HOLD` | `0.03` | Key-down → key-up time per press. |
+| `MAC_SCANNER_AUTO_GRAB_FOCUS` | `1` | Activate Remote Play before the burst starts. |
+
+When `--auto-grab-on-hit` is active, the OCR capture loop **skips frames while a burst is firing** so it doesn't re-detect the same card and queue a parallel burst — only one burst runs at a time. After the burst finishes, the next OCR cycle runs normally; cooldowns (`COOLDOWN_NOTIFY_SECONDS`) prevent immediate re-grabbing of the same card.
+
 ### Logging
 
 Rotating log at the repo root: **`mac_scanner.log`** (see `mac_scanner/__main__.py`). Headless mode also prints the same messages to stdout.
@@ -128,6 +233,8 @@ The matcher uses Vision bounding boxes to pair each **rarity** (and tier) with t
 | `MAC_SCANNER_OCR_SCALE` | Upscale before OCR (default **1.7**; try **2.0** if small labels are missed) |
 | `MAC_SCANNER_OCR_TRIM` | `1` (default) trims near-black borders before OCR; set `0` to disable |
 | `MAC_SCANNER_DEBUG_DUMP` | `1` — when a card-like string appears but tier/rarity labels are missing, save frame + OCR dump under **`debug_frames/`** (throttled) |
+| `MAC_SCANNER_ANTI_IDLE` etc. | See [Anti-idle keypress](#anti-idle-keypress) for the full set. |
+| `MAC_SCANNER_AUTO_GRAB_ON_HIT` etc. | See [Auto-grab burst](#auto-grab-burst) for the full set. |
 
 **Telegram tip:** `TELEGRAM_CHAT_ID` must be **your** user id (or a group id), not the bot’s. If the API says the bot cannot message the bot, use @userinfobot and send `/start` to your bot in private chat first.
 
