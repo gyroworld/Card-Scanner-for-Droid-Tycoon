@@ -1,243 +1,144 @@
-# ◈ Card Scanner Overlay
+# ◈ Card Scanner (Droid Tycoon)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
-![EasyOCR](https://img.shields.io/badge/OCR-EasyOCR-green.svg)
-![Tkinter](https://img.shields.io/badge/UI-Tkinter-orange.svg)
+![macOS](https://img.shields.io/badge/macOS-13%2B%20(Apple%20Silicon)-black.svg)
+![OCR](https://img.shields.io/badge/OCR-Apple%20Vision-green.svg)
 
-An intelligent automation assistant featuring a semi-transparent, Always-on-Top interface. Designed to monitor specific screen regions, identify text via OCR, and execute automated keyboard actions. Perfect for card games or systems requiring fast reactions to visual elements.
+macOS assistant that watches **PS Remote Play** (your PS5 stream), runs **Apple Vision** OCR on each frame, and alerts you when a configured **tier / rarity / card name** appears so you can grab it on the controller. **Notify-only**: it does not synthesize keystrokes (Remote Play ignores background automation reliably).
 
-## ✨ Key Features
+This repository ships the **`mac_scanner/`** package and **`requirements_mac.txt`**. An older Windows Tkinter + chroma-key overlay with in-game automation lived in `card_scanner.py`; that file is **not** in this tree anymore, so day-to-day use here is macOS-only.
 
-- **Chroma Key Overlay**: A 100% "hollow" capture window (transparent background) that allows the OCR engine to read the original screen perfectly without UI interference.
-- **Multi-Pass OCR**: An optimized system that first identifies the "Rank" to narrow down the "Name" search to specific buckets, saving CPU/GPU resources.
-- **Telegram Integration**: Automatic notifications with interactive Inline Keyboard buttons to confirm collections or report OCR misreads remotely.
-- **Anti-Spam & Cooldown**: Smart logic to prevent duplicate clicks and notification spam for the same target.
-- **Human Input Detection**: Automatically pauses automation when mouse movement or keystrokes are detected to avoid interfering with manual control.
-- **JSON Persistence**: Automatically saves collected items to a local database to ignore them in future sessions.
+## ✨ What `mac_scanner` does
 
-## 🛠️ Technology Stack
+- **Screen capture** of the Remote Play window via **mss**, with optional **`region.json`** override.
+- **Tier + rarity + name** matching with **RapidFuzz** (fuzzy names, spatial pairing of labels to card text).
+- **Human input detection** (optional): pauses scanning while you move the mouse or type.
+- **Telegram** (optional): card alerts with inline buttons; confirmations persist to **`collected_targets.json`**.
+- **Calibration mode**: logs every OCR string (and confidence) to tune `TIERS` / `RARITIES` in config.
+- **Headless mode** for servers or SSH sessions: no Tk UI, logs to stdout and **`mac_scanner.log`**.
 
-- **EasyOCR**: Optical Character Recognition with CUDA (GPU) acceleration support.
-- **Tkinter**: Lightweight, customized GUI for the overlay.
-- **MSS**: High-performance screen capture library.
-- **PyAutoGUI & Pynput**: Peripheral simulation and global input monitoring.
-- **Requests**: Communication with the Telegram Bot API.
+## 🛠️ Technology stack (macOS)
 
-## 🚀 Getting Started
+- **Apple Vision** (default OCR) via PyObjC · **OpenCV** (preprocess) · **NumPy** · **RapidFuzz** · **mss**
+- **Tkinter** control window + four thin edge windows for the capture outline (optional if you use `--headless`)
+- **pynput** (input monitoring) · **requests** + **python-dotenv** (Telegram / `.env`)
 
-1. **Requirements**: Python 3.11 or higher.
-2. **Installation**:
+Optional **EasyOCR** fallback: `pip install easyocr` and `MAC_SCANNER_OCR=easyocr`.
+
+## 🚀 Quick start (macOS)
+
+1. **Requirements**: Apple Silicon Mac, **macOS 13+**, **Python 3.11+**.
+2. **Tkinter**: Homebrew `python@3.x` does not include `_tkinter`. Install the matching add-on, e.g. `brew install python-tk@3.14` (minor version must match `python3 --version`). Check: `python3 -c "import tkinter; print('ok')"`.
+3. **Install**:
+
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements_mac.txt
+   ```
 
-## ⚠️ Language Dependency (OCR Localization)
+4. **Permissions** (one-time): grant **Screen Recording**, **Input Monitoring**, and **Accessibility** to your terminal (and Python if you launch via a wrapper). Quit and reopen the terminal after changes.
 
-This tool is currently configured to work with the **Portuguese (PT-BR)** version of the game. 
+5. **Run**:
 
-Since the automation relies on Optical Character Recognition (OCR) to match names and ranks:
-- **String Matching:** The `TARGETS_POR_RANK` dictionary uses Portuguese terms as keys and values.
-- **Game Language:** If your game is set to English or any other language, the OCR will not find a match.
+   ```bash
+   python -m mac_scanner
+   ```
 
-### How to Port to Other Languages:
-If you wish to use this in a different language:
-1. Create a new branch.
-2. Update the keys in `TARGETS_POR_RANK` to match the exact text displayed in your game's UI.
-3. Update the `_normalizar` function if your language uses special characters not covered by the current logic.
+   - **Headless** (starts scanning immediately; Ctrl+C to quit):
 
----
+     ```bash
+     python -m mac_scanner --headless
+     ```
 
-## macOS / Apple Silicon (PS Remote Play)
+   - **Calibration** from the CLI (useful with headless):
 
-The original `card_scanner.py` is **Windows-only** because it relies on
-Tkinter's `-transparentcolor` chroma-key trick and on `pyautogui`
-synthesizing keystrokes into the focused window. Neither survives a port
-to macOS, and neither helps when the actual game is running on a PS5
-streamed to your Mac via PS Remote Play.
+     ```bash
+     python -m mac_scanner --headless --calibration
+     ```
 
-The `mac_scanner/` package is the macOS port. It is **English-language**
-and **notify-only**: it watches the PS Remote Play window with Apple's
-Vision OCR and posts a macOS notification (plus optional Telegram) when
-a tracked card appears. You then press X on your real DualSense to pick
-up the card. The scanner never tries to synthesize input — Remote Play
-ignores synthetic keystrokes from background tools, so notify-only is
-the only reliable approach.
+6. In the GUI: open PS Remote Play, click **Recompute** if the region is missing, then **START**. A green outline shows the captured area.
 
-### Requirements
+### Alerts: sound vs Notification Center
 
-- Apple Silicon Mac running macOS 13+
-- Python 3.11+ (Homebrew: `brew install python@3.14`, or another 3.11+ build)
-- PS Remote Play installed and connected to your PS5
-
-**Homebrew Python and Tkinter:** the `python@3.x` formula does not ship `_tkinter`.
-If `python -m mac_scanner` crashes with `ModuleNotFoundError: No module named '_tkinter'`,
-install the matching add-on (same minor version as your Python), then retry:
+On a **card hit**, the app always plays the system **Glass** alert sound (`afplay`). **Notification Center toasts are off by default**; enable them with:
 
 ```bash
-brew install python-tk@3.14   # use 3.12, 3.13, … to match `python3 --version`
-```
-
-Quick check: `python3 -c "import tkinter; print('ok')"`.
-
-### Install
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements_mac.txt
-```
-
-### macOS permissions (one-time)
-
-The scanner needs three Privacy & Security grants:
-
-1. **Screen Recording** — required by `mss` to capture the PS Remote
-   Play window. System Settings -> Privacy & Security -> Screen
-   Recording -> add your terminal (Terminal.app or iTerm) **and** your
-   Python binary if you're invoked via a wrapper.
-2. **Input Monitoring** — required by `pynput` for the
-   pause-on-human-input feature. System Settings -> Privacy & Security
-   -> Input Monitoring -> add your terminal.
-3. **Accessibility** — also required by `pynput` on recent macOS
-   versions. Same panel, Accessibility tab.
-
-After granting any of these you may need to fully quit and relaunch the
-terminal.
-
-### Running
-
-```bash
+export MAC_SCANNER_TOAST=1
 python -m mac_scanner
 ```
 
-Then in the control window:
+**Spawn** lines (“X spawned at …”) are still **detected and logged** as `[spawn]` for debugging, but **user-visible spawn alerts are disabled** in `mac_scanner/config.py` (`ENABLE_SPAWN_NOTIFICATIONS = False`) so only rack/card detections notify.
 
-1. Make sure PS Remote Play is open and visible. Click **Recompute** if
-   the region label says "not found".
-2. Click **START**. A green outline appears around the band of the
-   Remote Play window the scanner is watching.
-3. When a tracked card is recognized, you'll get a macOS notification
-   and the alert sound. Press X on your DualSense.
+### Logging
 
-### Configuring targets
+Rotating log at the repo root: **`mac_scanner.log`** (see `mac_scanner/__main__.py`). Headless mode also prints the same messages to stdout.
 
-Targets live in [`mac_scanner/config.py`](mac_scanner/config.py) as a
-nested dict keyed by tier then rarity:
+---
+
+## ⚠️ Legacy: Windows script and Portuguese OCR
+
+The original Windows design used a **chroma-key Tk overlay**, **EasyOCR**, and **Portuguese (PT-BR)** UI strings in a `TARGETS_POR_RANK`-style map, with automation via **PyAutoGUI**. That script is **not** included in this checkout.
+
+If you ever revive it elsewhere: OCR strings and dictionaries must match the **in-game language**. The **mac** port uses **English** tier/rarity labels and card **codes** (e.g. `R5`, `BB9`) that do not depend on locale.
+
+---
+
+## Configuring targets
+
+Edit **`mac_scanner/config.py`**: nested dict **`TARGETS_INITIAL`**, keys are **tier** then **rarity**, values are sets of card name strings.
 
 ```python
 TARGETS_INITIAL = {
     "RAINBOW": {
-        "LEGENDARY": ALL_CARD_NAMES,
-        # "COMMON": {"BB9", "R7"},  # add the names you want for other rarities
+        "LEGENDARY": {"PROTO-ROLLER", "BB9", "R7"},
+        # "COMMON": {"GONK", "CB"},
     },
-    # "GOLD": {"LEGENDARY": {...}},
+    # "GOLD": {"COMMON": {...}},
 }
 ```
 
-Only `RAINBOW` (tier) and `COMMON` / `LEGENDARY` (rarities) are
-confirmed against real screenshots; the other tier and rarity words in
-`TIERS` / `RARITIES` are educated guesses. Use **Calibration mode** (see
-below) to discover the actual strings the game shows.
+The file also defines **`TIERS`**, **`RARITIES`**, and **`ALL_CARD_NAMES`**. Empty buckets are skipped. **`collected_targets.json`** stores triples you have already picked (via Telegram buttons or equivalent flows) so they are not alerted again.
 
-### Calibration mode (find the right strings)
-
-The game's exact spellings for the other 3 tiers and remaining rarities
-need to come from real game frames. Turn on the **Calibration** toggle
-in the control window, hit START, and walk past one card of each
-tier/rarity in-game. Every OCR string in every captured frame is
-written to the log with its confidence score. Pick the strings that
-look like tier/rarity labels and add them to `TIERS` / `RARITIES` in
-`config.py`.
-
-This is also how to handle truncated card names — if the game shows
-`MONO-WLKR` instead of `MONO-WALKER`, the matcher's RapidFuzz scorer
-already handles it (threshold 75), but if you see a card consistently
-missed, lower `FUZZY_SCORE_THRESHOLD` in `config.py` or add the
-truncated form as an extra entry in `ALL_CARD_NAMES`.
+Use **Calibration** in the UI (or `--calibration`) to capture real OCR spellings before expanding tiers/rarities.
 
 ### Spatial matching
 
-When several cards are on screen with different rarities (e.g. CB
-COMMON, NAV-EX RARE, GONK COMMON), the matcher uses Vision's bounding
-boxes to pair each rarity label with the card name **directly above
-it** in a similar x-range. Without this you get false positives where
-the matcher sees `RARE` somewhere in the frame and reports the
-highest-scoring fuzzy hit (often the wrong card).
+The matcher uses Vision bounding boxes to pair each **rarity** (and tier) with the **card name above it** in a similar horizontal band, which cuts false positives when several cards are on screen. Known OCR quirks (e.g. merged `DIAMONDRARE`) are normalized in **`mac_scanner/matcher.py`**. **`customWords`** bias Vision toward known card codes (adds a bit of latency per frame).
 
-It also handles two real-world OCR quirks:
-- Vision sometimes joins tokens like `DIAMONDRARE` — they get split
-  back into `DIAMOND` + `RARE` automatically.
-- Tier and rarity sometimes arrive as two separate observations
-  (`DEFAULT` and `COMMON` on different lines) — they're combined when
-  they're on the same row and adjacent.
+### Capture region
 
-The card-name vocabulary is also passed to Vision as `customWords`,
-which biases recognition toward known codes like `R5`, `BB9`,
-`DRK-1 PROBE`. This requires `usesLanguageCorrection=True`, which adds
-~50–100ms per frame but noticeably reduces OCR errors on game text.
+- Default: **entire** Remote Play window (`MAC_SCANNER_REGION` unset or `full`). Expect on the order of **~200–500 ms** OCR per frame on Apple Silicon at typical resolutions.
+- Faster crop: top **band** only:
 
-### Region
+  ```bash
+  MAC_SCANNER_REGION=band python -m mac_scanner
+  ```
 
-By default the scanner captures the **entire** PS Remote Play window
-each frame and lets the matcher filter (it only attempts a name match
-when both a tier word and a rarity word are visible). On Apple Silicon
-this is ~200–500 ms per frame and is the most reliable setting.
+- **Manual** region: click **Save current as override** in the UI to write **`region.json`**, or edit **`left` / `top` / `width` / `height`** by hand. Override wins over auto-detection.
 
-If you want to crop to the top band of the window (faster, slightly
-lower CPU use, but skips pickup-card popups in the screen center), opt
-in via env:
+### Environment variables
 
-```bash
-MAC_SCANNER_REGION=band python -m mac_scanner
-```
+| Variable | Purpose |
+|----------|---------|
+| `TELEGRAM_TOKEN` / `TELEGRAM_CHAT_ID` | Optional Telegram bot; also loadable from **`.env`** at repo root |
+| `MAC_SCANNER_OCR` | `vision` (default) or `easyocr` |
+| `MAC_SCANNER_REGION` | `full` (default) or `band` |
+| `MAC_SCANNER_TOAST` | `1` / `true` / `yes` / `on` — enable Notification Center on hits |
+| `MAC_SCANNER_OCR_SCALE` | Upscale before OCR (default **1.7**; try **2.0** if small labels are missed) |
+| `MAC_SCANNER_OCR_TRIM` | `1` (default) trims near-black borders before OCR; set `0` to disable |
+| `MAC_SCANNER_DEBUG_DUMP` | `1` — when a card-like string appears but tier/rarity labels are missing, save frame + OCR dump under **`debug_frames/`** (throttled) |
 
-For a fully manual region, click **Save current as override** in the UI
-to write `region.json`, then edit it by hand (`left`, `top`, `width`,
-`height` in physical pixels). The override always wins over auto.
+**Telegram tip:** `TELEGRAM_CHAT_ID` must be **your** user id (or a group id), not the bot’s. If the API says the bot cannot message the bot, use @userinfobot and send `/start` to your bot in private chat first.
 
-### Telegram (optional)
+### Debug dumps
 
-Set the credentials in your environment before launching:
+With **`MAC_SCANNER_DEBUG_DUMP=1`**, missed-label situations write a **PNG** and **TXT** transcript under **`debug_frames/`** (minimum interval in config) — useful when a card is visible but no notification fired.
 
-```bash
-export TELEGRAM_TOKEN="123456:ABC-..."
-export TELEGRAM_CHAT_ID="987654321"
-python -m mac_scanner
-```
+### What differs from the old Windows overlay
 
-Alternatively, put the same keys in a `.env` file at the repo root
-(`TELEGRAM_TOKEN=...` and `TELEGRAM_CHAT_ID=...` on separate lines). The
-scanner loads it automatically via `python-dotenv`. `.env` is listed in
-`.gitignore` so it is not committed.
-
-Without these, Telegram is disabled cleanly and you only get local
-notifications. Inline buttons on Telegram messages still work (Confirm
-removes the card from the active list and persists it to
-`collected_targets.json`).
-
-**Common mistake:** `TELEGRAM_CHAT_ID` must be **your** Telegram user id
-(or a group id), **not** the bot's id. If you see `Forbidden: the bot can't
-send messages to the bot`, open @userinfobot, copy your numeric id, put
-it in `.env`, and send `/start` to your bot in a private chat first.
-
-### OCR engine
-
-The default is Apple Vision via PyObjC (Neural Engine, fast, accurate
-on small UI text). To use EasyOCR on CPU instead:
-
-```bash
-pip install easyocr
-MAC_SCANNER_OCR=easyocr python -m mac_scanner
-```
-
-### What's intentionally different from the Windows version
-
-- No `pyautogui`, no `CGEventPost`, no key synthesis. Notify-only.
-- The chroma-key transparent overlay is replaced by four thin
-  click-through edge bars surrounding the capture region.
-- OCR matches on `(tier, rarity, name)` triples, not single ranks.
-- Name matching is fuzzy (RapidFuzz `WRatio` >= 75), so truncated
-  in-game names like `MONO-WLKR` for `MONO-WALKER` still match.
-- Telegram credentials are read from environment variables; nothing is
-  hardcoded.
-- Persistence file is `collected_targets.json` (new triple schema), not
-  the Windows version's `targets_removidos.json`.
+- No **PyAutoGUI** / key synthesis — **notify-only** on Mac.
+- No chroma-key window; **four thin edge bars** outline the region (click-through when possible).
+- Matching is **(tier, rarity, name)** with **fuzzy** names (RapidFuzz **WRatio** ≥ threshold in config).
+- Credentials and toggles come from **environment** / **`.env`**, not hardcoded secrets.
+- Persistence is **`collected_targets.json`** (triple schema).
