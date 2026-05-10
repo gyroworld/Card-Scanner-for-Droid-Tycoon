@@ -1,0 +1,25 @@
+# macOS / Apple Silicon requirements for mac_scanner.
+# Tested on Python 3.11+ on macOS 13+ (Apple Silicon).
+#
+# Tkinter is NOT installable via pip. Homebrew's python@3.x omits _tkinter;
+# install the matching add-on once, then pip install this file:
+#   brew install python-tk@3.14    # minor version must match python3 --version
+# Or use python.org Python, which ships with tkinter.
+
+mss>=9.0.0
+numpy>=1.26
+opencv-python-headless>=4.9
+rapidfuzz>=3.6
+requests>=2.31
+python-dotenv>=1.0
+pynput>=1.7
+
+# PyObjC frameworks used by capture.py, ocr.py, ui.py.
+# pyobjc-core is pulled transitively.
+pyobjc-framework-Quartz>=10.0
+pyobjc-framework-Vision>=10.0
+pyobjc-framework-Cocoa>=10.0
+
+# Optional: enable EasyOCR fallback by setting MAC_SCANNER_OCR=easyocr.
+# Heavy (PyTorch), CPU-only on Apple Silicon, leave commented unless needed.
+# easyocr>=1.7

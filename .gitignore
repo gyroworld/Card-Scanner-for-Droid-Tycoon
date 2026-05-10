@@ -1,0 +1,11 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.env
+mac_scanner.log*
+collected_targets.json
+region.json
+debug_frames/
+test_assets/
+scripts/
