@@ -3,10 +3,10 @@
 Vocabularies and the initial TARGETS bucket. The TARGETS structure is
 nested: TARGETS[tier][rarity] -> set of card-name strings.
 
-Only RAINBOW (tier) and COMMON / LEGENDARY (rarities) are confirmed from
-real screenshots. The other tier and rarity words are educated guesses;
-use the Calibration toggle in the UI to discover the real strings, then
-update this file.
+Several tier/rarity combinations are confirmed from in-game text (see
+inline notes on TIERS); others are still guesses. Use the Calibration
+toggle in the UI to log OCR strings live, then tighten vocabularies and
+TARGETS_INITIAL here when you spot mismatches.
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ ALL_CARD_NAMES: frozenset[str] = frozenset({
 
 # Active target buckets. Empty buckets are skipped at runtime.
 #
-# TEMP (testing): notify for ANY card whose rarity reads as RARE,
-# under any tier. Restore the LEGENDARY-only bucket below when done.
+# Below: only RAINBOW / LEGENDARY is wired up — edit or uncomment tiers
+# and rarities to match what you actually want alerted on.
 TARGETS_INITIAL = {
  #   "DEFAULT": {
  #       "COMMON":    ALL_CARD_NAMES,
@@ -105,11 +105,12 @@ COOLDOWN_NOTIFY_SECONDS: float = 30.0
 # Telegram message is sent for them.
 ENABLE_SPAWN_NOTIFICATIONS: bool = False
 
-# After ANY hit, sleep this long before scanning again. Defaults to 0
-# because we never synthesize a keypress on detection (notification only),
-# so there's no in-game animation to wait for. Per-name spamming is
-# already prevented by COOLDOWN_NOTIFY_SECONDS above. Bump this up only
-# if you find the scanner is over-firing on the same physical card.
+# After ANY hit, sleep this long before scanning again. Defaults to 0 —
+# sensible for notify-only runs (per-card spam is gated by
+# COOLDOWN_NOTIFY_SECONDS). With `--auto-grab-on-hit` or
+# MAC_SCANNER_AUTO_GRAB_ON_HIT, the capture loop also pauses OCR while a
+# grab burst runs; raising this delays re-scanning afterward if alerts
+# still feel too noisy.
 COOLDOWN_AFTER_HIT_SECONDS: float = 0.0
 
 # Approximate cadence between captures. Bumped up because the default
@@ -153,8 +154,9 @@ CAFFEINATE_DISPLAY: bool = os.environ.get(
 
 # Bicubic upscale factor applied to the captured frame before OCR.
 # The card rarity labels are very small (~15-25 captured pixels tall)
-# and Vision's accurate recognizer struggles at that size. 1.5x is a
-# good speed/accuracy tradeoff; raise to 2.0 if labels are still missed.
+# and Vision's accurate recognizer struggles at that size. Default 1.7x
+# (via MAC_SCANNER_OCR_SCALE) balances speed vs accuracy; try 2.0 if labels
+# are still missed.
 OCR_IMAGE_SCALE: float = float(os.environ.get("MAC_SCANNER_OCR_SCALE", "1.7"))
 
 # Strip near-black borders before OCR. PS Remote Play in windowed mode
@@ -165,8 +167,9 @@ OCR_TRIM_BORDERS: bool = os.environ.get(
     "MAC_SCANNER_OCR_TRIM", "1"
 ).lower() in ("1", "true", "yes", "on")
 
-# Debug: when enabled, save frames + their OCR output to disk whenever
-# a card name appears to be visible but no tier/rarity label was read.
+# Debug: when enabled, save frames + OCR dumps when OCR shows no
+# tier/rarity labels but includes at least one string that fuzzy-matches
+# a known card name strongly (internal WRatio floor ~85 — see __main__.py).
 # Useful for diagnosing missed notifications. Defaults off.
 DEBUG_DUMP: bool = (
     os.environ.get("MAC_SCANNER_DEBUG_DUMP", "").lower()
@@ -201,8 +204,8 @@ REMOTE_PLAY_OWNER_NAMES: tuple[str, ...] = (
 #     (System Settings → Privacy & Security → Accessibility).
 #   * Remote Play visible and able to come to the foreground.
 
-# Toggle: enable the anti-idle loop at startup. Headless or GUI mode
-# can flip this with `--anti-idle` / a UI checkbox later.
+# Toggle: enable the anti-idle loop at startup via MAC_SCANNER_ANTI_IDLE or
+# `--anti-idle` (no GUI toggle yet).
 ANTI_IDLE_ENABLED: bool = (
     os.environ.get("MAC_SCANNER_ANTI_IDLE", "").lower()
     in ("1", "true", "yes", "on")
@@ -252,8 +255,9 @@ ANTI_IDLE_KEY_HOLD_SECONDS: float = float(
 # On demand (`--auto-grab` one-shot) or on card detection (`--auto-grab-on-hit`),
 # spam a key — default "E", which is the in-game pickup/interact action in
 # Droid Tycoon — for AUTO_GRAB_DURATION_SECONDS at AUTO_GRAB_DELAY_SECONDS
-# intervals. ~30 presses by default, enough to grab a card even when the
-# interact prompt is briefly hidden by an animation.
+# intervals. At best you get roughly duration/delay presses (e.g. 3.0/0.1 ≈ 30);
+# counting per-tap hold time, defaults usually land in the low–mid twenties —
+# enough to grab a card even when the interact prompt is briefly hidden by an animation.
 
 # Toggle: enable the on-hit auto-grab in the running scanner loop.
 # `--auto-grab-on-hit` does the same thing at CLI level.
