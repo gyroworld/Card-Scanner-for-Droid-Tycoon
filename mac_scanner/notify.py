@@ -15,17 +15,24 @@ unset in the environment.
 
 from __future__ import annotations
 
-import shlex
+import queue
 import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import requests
 
 from . import config
+from .notify_utils import prune_stale_cooldown_entries
 from .targets import TargetStore, normalize
+
+# Sentinel to stop Telegram outbound worker.
+_OUTBOUND_STOP = object()
+
+# Bounded queue avoids unbounded memory if Telegram is offline.
+_TELEGRAM_OUTBOUND_MAX_PENDING = 32
 
 
 # ─── Local (macOS) ───────────────────────────────────────────────────────────
@@ -89,6 +96,17 @@ class TelegramBot:
         self._last_update_id = 0
         self._stop = threading.Event()
         self._poll_thread: threading.Thread | None = None
+        self._send_queue: queue.Queue[tuple[Any, ...]] | None = None
+        self._outbound_thread: threading.Thread | None = None
+        self._send_queue_overflow_logged = False
+        if self.enabled:
+            self._send_queue = queue.Queue(maxsize=_TELEGRAM_OUTBOUND_MAX_PENDING)
+            self._outbound_thread = threading.Thread(
+                target=self._outbound_worker,
+                daemon=True,
+                name="mac_scanner.telegram_outbound",
+            )
+            self._outbound_thread.start()
 
     @property
     def enabled(self) -> bool:
@@ -99,14 +117,54 @@ class TelegramBot:
     def _can_notify(self, tier: str, rarity: str, name: str) -> bool:
         key = (tier, rarity, name)
         now = time.perf_counter()
+        retention = float(config.COOLDOWN_MAP_RETENTION_SECONDS)
         with self._cooldown_lock:
-            if now - self._cooldowns.get(key, 0.0) < config.COOLDOWN_NOTIFY_SECONDS:
+            prune_stale_cooldown_entries(
+                self._cooldowns,
+                now,
+                retention_seconds=retention,
+            )
+            last = self._cooldowns.get(key)
+            if last is not None and (
+                    now - last < config.COOLDOWN_NOTIFY_SECONDS):
                 return False
             self._cooldowns[key] = now
             return True
 
     def _url(self, method: str) -> str:
         return self.BASE.format(token=self._token, method=method)
+
+    def _enqueue_outbound(
+        self,
+        text: str,
+        *,
+        keyboard: dict | None,
+    ) -> None:
+        q = self._send_queue
+        if q is None:
+            return
+        item = (text, keyboard)
+        try:
+            q.put_nowait(item)
+            self._send_queue_overflow_logged = False
+        except queue.Full:
+            if not self._send_queue_overflow_logged:
+                self._on_log(
+                    "[telegram] outbound queue full; dropping alerts until backlog clears "
+                    f"(max {_TELEGRAM_OUTBOUND_MAX_PENDING})",
+                )
+                self._send_queue_overflow_logged = True
+
+    def _outbound_worker(self) -> None:
+        q = self._send_queue
+        if q is None:
+            return
+        while True:
+            item = q.get()
+            if item is _OUTBOUND_STOP:
+                break
+            text, keyboard = item
+            self._post_message(text, None, keyboard=keyboard)
 
     def send_card_alert(self, tier: str, rarity: str, name: str) -> None:
         if not self.enabled:
@@ -130,12 +188,7 @@ class TelegramBot:
                  "callback_data": f"skip|{tier}|{rarity}|{name}"},
             ]]
         }
-        threading.Thread(
-            target=self._post_message,
-            args=(text, None),
-            kwargs={"keyboard": keyboard},
-            daemon=True,
-        ).start()
+        self._enqueue_outbound(text, keyboard=keyboard)
 
     def send_spawn_alert(self, tier: str, rarity: str, location: str) -> None:
         if not self.enabled:
@@ -156,11 +209,7 @@ class TelegramBot:
             f"Tier: `{tier}`\n"
             f"Rarity: `{rarity}`"
         )
-        threading.Thread(
-            target=self._post_message,
-            args=(text, None),
-            daemon=True,
-        ).start()
+        self._enqueue_outbound(text, keyboard=None)
 
     def _post_message(self, text: str, _unused=None, *, keyboard: dict | None = None) -> None:
         try:
@@ -200,6 +249,25 @@ class TelegramBot:
 
     def stop(self) -> None:
         self._stop.set()
+        q = self._send_queue
+        if q is not None:
+            inserted = False
+            for _ in range(_TELEGRAM_OUTBOUND_MAX_PENDING + 2):
+                try:
+                    q.put_nowait(_OUTBOUND_STOP)
+                    inserted = True
+                    break
+                except queue.Full:
+                    try:
+                        q.get_nowait()
+                    except queue.Empty:
+                        pass
+            if not inserted:
+                self._on_log("[telegram] could not enqueue shutdown sentinel; outbound may linger")
+            t = self._outbound_thread
+            self._outbound_thread = None
+            if t is not None and t.is_alive():
+                t.join(timeout=2.0)
 
     def _poll_loop(self) -> None:
         while not self._stop.is_set():
@@ -320,8 +388,16 @@ class Notifier:
     def _can_notify_locally(self, tier: str, rarity: str, name: str) -> bool:
         key = (tier, rarity, name)
         now = time.perf_counter()
+        retention = float(config.COOLDOWN_MAP_RETENTION_SECONDS)
         with self._lock:
-            if now - self._local_cooldowns.get(key, 0.0) < config.COOLDOWN_NOTIFY_SECONDS:
+            prune_stale_cooldown_entries(
+                self._local_cooldowns,
+                now,
+                retention_seconds=retention,
+            )
+            last = self._local_cooldowns.get(key)
+            if last is not None and (
+                    now - last < config.COOLDOWN_NOTIFY_SECONDS):
                 return False
             self._local_cooldowns[key] = now
             return True

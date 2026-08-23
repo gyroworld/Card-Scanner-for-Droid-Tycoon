@@ -191,19 +191,31 @@ If you ever revive it elsewhere: OCR strings and dictionaries must match the **i
 
 ## Configuring targets
 
-Edit **`mac_scanner/config.py`**: nested dict **`TARGETS_INITIAL`**, keys are **tier** then **rarity**, values are sets of card name strings.
+Alert filters live in **`data/droid_dex.json`** under the **`watch`** block. Vocabularies (`TIERS`, `RARITIES`, card names) are loaded from the same file at startup.
 
-```python
-TARGETS_INITIAL = {
-    "RAINBOW": {
-        "LEGENDARY": {"PROTO-ROLLER", "BB9", "R7"},
-        # "COMMON": {"GONK", "CB"},
-    },
-    # "GOLD": {"COMMON": {...}},
+```json
+"watch": {
+  "tiers": ["RAINBOW", "BESKAR", "GALACTIC", "STELLAR"],
+  "rarities": ["LEGENDARY", "MYTHIC", "ICONIC"],
+  "classes": null,
+  "names": null,
+  "exclude_names": []
 }
 ```
 
-The file also defines **`TIERS`**, **`RARITIES`**, and **`ALL_CARD_NAMES`**. Empty buckets are skipped. **`collected_targets.json`** stores triples you have already picked (via Telegram buttons or equivalent flows) so they are not alerted again.
+- **`tiers`**: paint variants (Base OCR-spells as `DEFAULT`).
+- **`rarities`**: intrinsic droid rarities from the Droidex.
+- **`classes`**: `Worker` / `Astromech` / `Battle`, or `null` for all.
+- **`names`**: optional allow-list of card codes; `null` means every name that matches the other filters.
+- **`exclude_names`**: names to never alert on.
+
+Refresh the catalog from the wiki after game updates:
+
+```bash
+python3 scripts/refresh_droid_dex.py
+```
+
+Empty buckets are skipped. **`collected_targets.json`** stores triples you have already picked (via Telegram buttons or equivalent flows) so they are not alerted again.
 
 Use **Calibration** in the UI (or `--calibration`) to capture real OCR spellings before expanding tiers/rarities.
 
@@ -249,3 +261,14 @@ With **`MAC_SCANNER_DEBUG_DUMP=1`**, missed-label situations write a **PNG** and
 - Matching is **(tier, rarity, name)** with **fuzzy** names (RapidFuzz **WRatio** ≥ threshold in config).
 - Credentials and toggles come from **environment** / **`.env`**, not hardcoded secrets.
 - Persistence is **`collected_targets.json`** (triple schema).
+
+### Development and tests
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+The **`needs_vision`** suite exercise Apple Vision wrappers on macOS; run on this platform before releases. After memory-related fixes, perform a manual **Activity Monitor soak** (60–120 min) using the checklist in **[docs/memory_soak.md](docs/memory_soak.md)**.

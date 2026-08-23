@@ -1,18 +1,19 @@
 """Static configuration for mac_scanner.
 
-Vocabularies and the initial TARGETS bucket. The TARGETS structure is
-nested: TARGETS[tier][rarity] -> set of card-name strings.
+Vocabularies and the initial TARGETS bucket come from the local Droidex
+catalog at ``data/droid_dex.json``. Edit that file's ``watch`` block to
+choose which tier / rarity / class / names to alert on, then restart.
 
-Several tier/rarity combinations are confirmed from in-game text (see
-inline notes on TIERS); others are still guesses. Use the Calibration
-toggle in the UI to log OCR strings live, then tighten vocabularies and
-TARGETS_INITIAL here when you spot mismatches.
+TARGETS structure remains nested: TARGETS[tier][rarity] -> set of names.
+Use Calibration in the UI to log OCR strings live when spellings drift.
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
+
+from . import dex as _dex
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -25,66 +26,20 @@ try:
 except ImportError:
     pass
 
-# ─── Vocabularies ────────────────────────────────────────────────────────────
+# ─── Droidex catalog → vocabularies + watchlist ──────────────────────────────
 
-TIERS: frozenset[str] = frozenset({
-    "DEFAULT",   # confirmed from in-game ("R3 DEFAULT COMMON" etc.)
-    "GOLD",      # confirmed from in-game ("GONK GOLD COMMON")
-    "DIAMOND",   # assumed
-    "RAINBOW",   # confirmed from in-game ("PROTO-ROLLER RAINBOW LEGENDARY")
-})
+DROID_DEX_FILE: Path = _dex.DEFAULT_DEX_PATH
+DROID_DEX: dict = _dex.load_dex(DROID_DEX_FILE)
 
-RARITIES: frozenset[str] = frozenset({
-    "COMMON",
-    "RARE",
-    "EPIC",
-    "LEGENDARY",
-})
+# Paint variants (Base OCR-spells as DEFAULT) + intrinsic rarities + card codes.
+TIERS: frozenset[str] = _dex.tiers(DROID_DEX)
+RARITIES: frozenset[str] = _dex.rarities(DROID_DEX)
+ALL_CARD_NAMES: frozenset[str] = _dex.card_names(DROID_DEX)
+# Includes legacy OCR aliases (e.g. MONO-WALKER for MONO-WLKR).
+OCR_CARD_NAMES: frozenset[str] = _dex.ocr_vocab_names(DROID_DEX)
 
-# Card names — proper-noun codes that don't translate. Verbatim from the
-# original Portuguese card_scanner.py target list.
-ALL_CARD_NAMES: frozenset[str] = frozenset({
-    "MOUSE", "PIT", "GONK", "CB", "R3", "R5", "R8",
-    "IMPERIAL PROBE", "B1 BATTLE", "DRK-1 PROBE", "ID10",
-    "BDX EXPLORER", "ARG", "SENATE HOVERCAM", "BU-4D", "BAL-CORE",
-    "ROLL-R", "2BB", "A-LT", "R4", "R9", "B1 SECURITY", "NAV-EX",
-    "VECT-ARM", "HOV-R", "GROUNDMECH", "LO", "AMP WALKER", "SEN-TRI",
-    "OPTI-POD", "BB", "R2", "R6", "TRAK-R", "ORB-WALKER", "UTIL-TEC",
-    "B1 HEAVY", "B2 SUPER", "B2 HEAVY", "STRIKE-ORB", "HAUL-R",
-    "LNG-SHOT", "PROTO-ROLLER", "MECHA-DROID", "MONO-WALKER", "BB9",
-    "R7", "B2-RP", "CYCLO-GRAV", "OPTI-STRIKE",
-})
-
-# Active target buckets. Empty buckets are skipped at runtime.
-#
-# Below: only RAINBOW / LEGENDARY is wired up — edit or uncomment tiers
-# and rarities to match what you actually want alerted on.
-TARGETS_INITIAL = {
- #   "DEFAULT": {
- #       "COMMON":    ALL_CARD_NAMES,
- #       "RARE":      ALL_CARD_NAMES,
- #       "EPIC":      ALL_CARD_NAMES,
- #       "LEGENDARY": ALL_CARD_NAMES,
- #   },
- #   "GOLD": {
- #       "COMMON":    ALL_CARD_NAMES,
- #       "RARE":      ALL_CARD_NAMES,
- #       "EPIC":      ALL_CARD_NAMES,
- #       "LEGENDARY": ALL_CARD_NAMES,
- #   },
- #   "DIAMOND": {
- #       "COMMON":    ALL_CARD_NAMES,
- #       "RARE":      ALL_CARD_NAMES,
- #       "EPIC":      ALL_CARD_NAMES,
- #       "LEGENDARY": ALL_CARD_NAMES,
- #   },
-    "RAINBOW": {
- #       "COMMON":    ALL_CARD_NAMES,
- #       "RARE":      ALL_CARD_NAMES,
- #       "EPIC":      ALL_CARD_NAMES,
-        "LEGENDARY": ALL_CARD_NAMES,
-    },
-}
+# Built from data/droid_dex.json → "watch". Empty buckets are skipped at runtime.
+TARGETS_INITIAL = _dex.build_targets(DROID_DEX)
 
 # ─── Behaviour knobs ─────────────────────────────────────────────────────────
 
@@ -97,6 +52,10 @@ REGION_OVERRIDE_FILE: Path = _REPO_ROOT / "region.json"
 
 # Per (tier, rarity, name) cooldown — don't re-notify the same card too often.
 COOLDOWN_NOTIFY_SECONDS: float = 30.0
+
+# Drop cooldown bookkeeping entries older than this so maps stay bounded over
+# long runs. Must be comfortably larger than COOLDOWN_NOTIFY_SECONDS.
+COOLDOWN_MAP_RETENTION_SECONDS: float = COOLDOWN_NOTIFY_SECONDS * 5.0
 
 # Spawn-toast ("XYZ DROID SPAWNED AT…") notifications are disabled by
 # design: only the actual card-on-the-rack detections fire alerts.

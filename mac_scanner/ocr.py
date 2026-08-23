@@ -12,6 +12,7 @@ Both engines expose the same minimal contract:
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -91,9 +92,28 @@ class VisionOCR:
             provider, None, False, Quartz.kCGRenderingIntentDefault,
         )
 
+    @staticmethod
+    def _objc_autorelease_context():
+        """Pool autoreleased ObjC churn on POSIX threads that lack NSRunLoop."""
+        try:
+            import objc  # noqa: PLC0415
+            maker = getattr(objc, "autorelease_pool", None)
+            if maker is None:
+                return nullcontext()
+            pool = maker()
+            if hasattr(pool, "__enter__"):
+                return pool
+        except ImportError:
+            pass
+        return nullcontext()
+
     def recognize(self, image_bgr: np.ndarray) -> list[OCRResult]:
         if image_bgr.size == 0:
             return []
+        with self._objc_autorelease_context():
+            return self._recognize_impl(image_bgr)
+
+    def _recognize_impl(self, image_bgr: np.ndarray) -> list[OCRResult]:
         Vision = self._Vision
         h, w = image_bgr.shape[:2]
         cgimage = self._np_to_cgimage(image_bgr)

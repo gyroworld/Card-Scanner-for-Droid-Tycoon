@@ -1,0 +1,4 @@
+# Developer / CI only: pip install -r requirements-dev.txt
+-r requirements_mac.txt
+pytest>=8.0
+pytest-mock>=3.12

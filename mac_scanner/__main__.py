@@ -32,7 +32,6 @@ from .input_sender import (
     AutoGrabConfig,
     AutoGrabber,
     activate_remote_play,
-    auto_grab,
     frontmost_application,
     is_accessibility_trusted,
     send_keypress,
@@ -136,7 +135,7 @@ class ScannerApp:
         self._last_scan_summary: str | None = None
         self._last_scan_log_at: float = 0.0
         self._last_debug_dump_at: float = 0.0
-        self._known_card_names: list[str] = sorted(config.ALL_CARD_NAMES)
+        self._known_card_names: list[str] = sorted(config.OCR_CARD_NAMES)
 
         self._grabber: capture.ScreenGrabber | None = None
         self._capture_thread: threading.Thread | None = None
@@ -232,7 +231,7 @@ class ScannerApp:
     def _build_custom_words(self) -> tuple[str, ...]:
         """All vocabulary tokens we'd like Vision to bias toward."""
         words: set[str] = set()
-        for name in config.ALL_CARD_NAMES:
+        for name in config.OCR_CARD_NAMES:
             words.add(name)
             for token in name.split():
                 if token:
@@ -766,13 +765,7 @@ def _run_auto_grab_oneshot(
         focus_remote_play=cfg.focus_remote_play,
     )
     try:
-        count = auto_grab(
-            cfg.key,
-            duration_seconds=cfg.duration_seconds,
-            delay_seconds=cfg.delay_seconds,
-            hold_seconds=cfg.hold_seconds,
-            focus_remote_play=cfg.focus_remote_play,
-        )
+        count = AutoGrabber(cfg).grab_now()
     except ValueError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2

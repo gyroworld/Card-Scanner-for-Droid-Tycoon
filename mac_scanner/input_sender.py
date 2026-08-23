@@ -398,6 +398,12 @@ def auto_grab(
     return count
 
 
+# After the interact burst, wait then post a single "f" (game-specific action).
+POST_AUTO_GRAB_FOLLOWUP_DELAY_SECONDS: float = 0.5
+# Extra synth-suppression tail so pause-on-human-input ignores the follow-up key.
+_POST_AUTO_GRAB_SYNTH_TAIL_SECONDS: float = 2.0
+
+
 @dataclass(frozen=True)
 class AutoGrabConfig:
     key: str = "e"
@@ -480,6 +486,22 @@ class AutoGrabber:
             hold_seconds=self._cfg.hold_seconds,
             focus_remote_play=self._cfg.focus_remote_play,
             human_monitor=self._human,
+        )
+        if self._human is not None:
+            try:
+                self._human.mark_synth_window(_POST_AUTO_GRAB_SYNTH_TAIL_SECONDS)
+            except Exception:
+                pass
+        time.sleep(POST_AUTO_GRAB_FOLLOWUP_DELAY_SECONDS)
+        send_keypress(
+            "f",
+            focus_remote_play=False,
+            hold_seconds=self._cfg.hold_seconds,
+        )
+        _LOGGER.info(
+            "auto-grab follow-up: key=%r delay=%.2fs",
+            "f",
+            POST_AUTO_GRAB_FOLLOWUP_DELAY_SECONDS,
         )
         self._grabs += 1
         self._last_grab_at = time.perf_counter()

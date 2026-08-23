@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "macos_only: requires Darwin runtime",
+    "needs_vision: requires Apple Vision + PyObjC Vision stack",
+]

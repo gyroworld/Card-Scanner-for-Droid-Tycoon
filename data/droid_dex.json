@@ -1,0 +1,1576 @@
+{
+  "source": {
+    "droidex": "https://star-wars-droid-tycoon.fandom.com/wiki/Droidex",
+    "fusion": "https://star-wars-droid-tycoon.fandom.com/wiki/Droid_Fusion",
+    "fetched": "2026-08-23"
+  },
+  "tiers": [
+    "DEFAULT",
+    "GOLD",
+    "DIAMOND",
+    "RAINBOW",
+    "BESKAR",
+    "GALACTIC",
+    "STELLAR"
+  ],
+  "rarities": [
+    "COMMON",
+    "RARE",
+    "EPIC",
+    "LEGENDARY",
+    "MYTHIC",
+    "ICONIC"
+  ],
+  "classes": [
+    "Worker",
+    "Astromech",
+    "Battle"
+  ],
+  "notes": {
+    "tier_ocr": "In-game card/spawn text uses DEFAULT for the Base paint variant.",
+    "classes": "Worker / Astromech / Battle \u2014 the three droid classes on the Droidex.",
+    "watch": "Edit the watch block to choose which tier \u00d7 rarity \u00d7 class combinations the scanner alerts on. null for classes/names means all."
+  },
+  "watch": {
+    "tiers": [
+      "RAINBOW",
+      "BESKAR",
+      "GALACTIC",
+      "STELLAR"
+    ],
+    "rarities": [
+      "LEGENDARY",
+      "MYTHIC",
+      "ICONIC"
+    ],
+    "classes": null,
+    "names": null,
+    "exclude_names": []
+  },
+  "droids": [
+    {
+      "name": "GONK",
+      "display": "Gonk",
+      "wiki_page": "Gonk",
+      "rarity": "COMMON",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "MOUSE",
+      "display": "Mouse",
+      "wiki_page": "Mouse",
+      "rarity": "COMMON",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "PIT",
+      "display": "Pit",
+      "wiki_page": "Pit",
+      "rarity": "COMMON",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "CB",
+      "display": "CB",
+      "wiki_page": "CB",
+      "rarity": "COMMON",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R3",
+      "display": "R3",
+      "wiki_page": "R3",
+      "rarity": "COMMON",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R5",
+      "display": "R5",
+      "wiki_page": "R5",
+      "rarity": "COMMON",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R8",
+      "display": "R8",
+      "wiki_page": "R8",
+      "rarity": "COMMON",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "B1 BATTLE",
+      "display": "B1 Battle",
+      "wiki_page": "B1 Battle",
+      "rarity": "COMMON",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "DRK-1 PROBE",
+      "display": "DRK-1 Probe",
+      "wiki_page": "DRK-1 Probe",
+      "rarity": "COMMON",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ID10",
+      "display": "ID10",
+      "wiki_page": "ID10",
+      "rarity": "COMMON",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "IMPERIAL PROBE",
+      "display": "Imperial Probe",
+      "wiki_page": "Imperial Probe",
+      "rarity": "COMMON",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ARG",
+      "display": "ARG",
+      "wiki_page": "ARG",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "B-U4D",
+      "display": "B-U4D",
+      "wiki_page": "B-U4D",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [
+        "BU-4D"
+      ],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "BAL-CORE",
+      "display": "BAL-Core",
+      "wiki_page": "BAL-Core",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "BDX EXPLORER",
+      "display": "BDX Explorer",
+      "wiki_page": "BDX Explorer",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ROLL-R",
+      "display": "ROLL-R",
+      "wiki_page": "ROLL-R",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "SENATE HOVERCAM",
+      "display": "Senate Hovercam",
+      "wiki_page": "Senate Hovercam",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "WHL-EX",
+      "display": "WHL-EX",
+      "wiki_page": "WHL-EX",
+      "rarity": "RARE",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "2BB",
+      "display": "2BB",
+      "wiki_page": "2BB",
+      "rarity": "RARE",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "A-LT",
+      "display": "A-LT",
+      "wiki_page": "A-LT",
+      "rarity": "RARE",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R4",
+      "display": "R4",
+      "wiki_page": "R4",
+      "rarity": "RARE",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R9",
+      "display": "R9",
+      "wiki_page": "R9",
+      "rarity": "RARE",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ZRO-TEC",
+      "display": "ZRO-TEC",
+      "wiki_page": "ZRO-TEC",
+      "rarity": "RARE",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "B1 SECURITY",
+      "display": "B1 Security",
+      "wiki_page": "B1 Security",
+      "rarity": "RARE",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "BTL-R",
+      "display": "BTL-R",
+      "wiki_page": "BTL-R",
+      "rarity": "RARE",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "HOV-R",
+      "display": "HOV-R",
+      "wiki_page": "HOV-R",
+      "rarity": "RARE",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "NAV-EX",
+      "display": "NAV-EX",
+      "wiki_page": "NAV-EX",
+      "rarity": "RARE",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "VECT-ARM",
+      "display": "Vect-Arm",
+      "wiki_page": "Vect-Arm",
+      "rarity": "RARE",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "AMP WALKER",
+      "display": "AMP Walker",
+      "wiki_page": "AMP Walker",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "GROUNDMECH",
+      "display": "Groundmech",
+      "wiki_page": "Groundmech",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "GUNRUNNER",
+      "display": "Gunrunner",
+      "wiki_page": "Gunrunner",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "LO",
+      "display": "LO",
+      "wiki_page": "LO",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "N-UL",
+      "display": "N-UL",
+      "wiki_page": "N-UL",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "OPTI-POD",
+      "display": "Opti-Pod",
+      "wiki_page": "Opti-Pod",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "SEN-TRI",
+      "display": "Sen-Tri",
+      "wiki_page": "Sen-Tri",
+      "rarity": "EPIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "BB",
+      "display": "BB",
+      "wiki_page": "BB",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ORB-WALKER",
+      "display": "Orb-Walker",
+      "wiki_page": "Orb-Walker",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R2",
+      "display": "R2",
+      "wiki_page": "R2",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R6",
+      "display": "R6",
+      "wiki_page": "R6",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "SCRP-R",
+      "display": "SCRP-R",
+      "wiki_page": "SCRP-R",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "TRAK-R",
+      "display": "Trak-R",
+      "wiki_page": "Trak-R",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "UTIL-TEC",
+      "display": "Util-Tec",
+      "wiki_page": "Util-Tec",
+      "rarity": "EPIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ARM-CORE",
+      "display": "ARM-Core",
+      "wiki_page": "ARM-Core",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "B1 HEAVY",
+      "display": "B1 Heavy",
+      "wiki_page": "B1 Heavy",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "B2 HEAVY",
+      "display": "B2 Heavy",
+      "wiki_page": "B2 Heavy",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "B2 SUPER",
+      "display": "B2 Super",
+      "wiki_page": "B2 Super",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "HAUL-R",
+      "display": "Haul-R",
+      "wiki_page": "Haul-R",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "LNG-SHOT",
+      "display": "LNG-Shot",
+      "wiki_page": "LNG-Shot",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "OPT-AR",
+      "display": "OPT-AR",
+      "wiki_page": "OPT-AR",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "STRIKE-ORB",
+      "display": "Strike-Orb",
+      "wiki_page": "Strike-Orb",
+      "rarity": "EPIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "FUS-3",
+      "display": "FUS-3",
+      "wiki_page": "FUS-3",
+      "rarity": "LEGENDARY",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "MECHA-DROID",
+      "display": "Mecha-Droid",
+      "wiki_page": "Mecha-Droid",
+      "rarity": "LEGENDARY",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "MONO-WLKR",
+      "display": "Mono-WLKR",
+      "wiki_page": "Mono-WLKR",
+      "rarity": "LEGENDARY",
+      "class": "Worker",
+      "aliases": [
+        "MONO-WALKER"
+      ],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "PROTO-ROLLER",
+      "display": "Proto-Roller",
+      "wiki_page": "Proto-Roller",
+      "rarity": "LEGENDARY",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "RO-TOR",
+      "display": "RO-TOR",
+      "wiki_page": "RO-TOR",
+      "rarity": "LEGENDARY",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "BB9",
+      "display": "BB9",
+      "wiki_page": "BB9",
+      "rarity": "LEGENDARY",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "QIK-BIT",
+      "display": "QIK-BIT",
+      "wiki_page": "QIK-BIT",
+      "rarity": "LEGENDARY",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "R7",
+      "display": "R7",
+      "wiki_page": "R7",
+      "rarity": "LEGENDARY",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "B2-RP",
+      "display": "B2-RP",
+      "wiki_page": "B2-RP",
+      "rarity": "LEGENDARY",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "CYCLO-GRAV",
+      "display": "Cyclo-Grav",
+      "wiki_page": "Cyclo-Grav",
+      "rarity": "LEGENDARY",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "OPTI-STRK",
+      "display": "Opti-STRK",
+      "wiki_page": "Opti-STRK",
+      "rarity": "LEGENDARY",
+      "class": "Battle",
+      "aliases": [
+        "OPTI-STRIKE"
+      ],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "ORB-XL",
+      "display": "ORB-XL",
+      "wiki_page": "ORB-XL",
+      "rarity": "LEGENDARY",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "LEP",
+      "display": "LEP",
+      "wiki_page": "LEP",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "LOADLIFTER",
+      "display": "Loadlifter",
+      "wiki_page": "Loadlifter",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "LOW-MO",
+      "display": "LOW-MO",
+      "wiki_page": "LOW-MO",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "LUG-G",
+      "display": "LUG-G",
+      "wiki_page": "LUG-G",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "RIC",
+      "display": "RIC",
+      "wiki_page": "RIC",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "RIV-3T",
+      "display": "RIV-3T",
+      "wiki_page": "RIV-3T",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "SNOW MOUSE",
+      "display": "Snow Mouse",
+      "wiki_page": "Snow Mouse",
+      "rarity": "MYTHIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "AXI-POD",
+      "display": "AXI-POD",
+      "wiki_page": "AXI-POD",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "CYCLENS",
+      "display": "Cyclens",
+      "wiki_page": "Cyclens",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "DRFT-R",
+      "display": "DRFT-R",
+      "wiki_page": "DRFT-R",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "MO-TRAK",
+      "display": "MO-Trak",
+      "wiki_page": "MO-Trak",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "RIC-1200",
+      "display": "RIC-1200",
+      "wiki_page": "RIC-1200",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "TRI-TEK",
+      "display": "Tri-Tek",
+      "wiki_page": "Tri-Tek",
+      "rarity": "MYTHIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "IG",
+      "display": "IG",
+      "wiki_page": "IG",
+      "rarity": "MYTHIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "KX",
+      "display": "KX",
+      "wiki_page": "KX",
+      "rarity": "MYTHIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "SRV-O",
+      "display": "SRV-O",
+      "wiki_page": "SRV-O",
+      "rarity": "MYTHIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "X-ONK",
+      "display": "X-ONK",
+      "wiki_page": "X-ONK",
+      "rarity": "MYTHIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT",
+        "GOLD",
+        "DIAMOND",
+        "RAINBOW",
+        "BESKAR",
+        "GALACTIC",
+        "STELLAR"
+      ],
+      "source": "fusion"
+    },
+    {
+      "name": "C-3PO",
+      "display": "C-3PO",
+      "wiki_page": "C-3PO",
+      "rarity": "ICONIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "DJ R-3X",
+      "display": "DJ R-3X",
+      "wiki_page": "DJ R-3X",
+      "rarity": "ICONIC",
+      "class": "Worker",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "BB-8",
+      "display": "BB-8",
+      "wiki_page": "BB8",
+      "rarity": "ICONIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "CB-23",
+      "display": "CB-23",
+      "wiki_page": "CB-23",
+      "rarity": "ICONIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "CHOPPER",
+      "display": "Chopper",
+      "wiki_page": "Chopper",
+      "rarity": "ICONIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "R2-D2",
+      "display": "R2-D2",
+      "wiki_page": "R2-D2",
+      "rarity": "ICONIC",
+      "class": "Astromech",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "IG-11 MARSHAL",
+      "display": "IG-11 Marshal",
+      "wiki_page": "IG-11 Marshal",
+      "rarity": "ICONIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    },
+    {
+      "name": "MISTER BONES",
+      "display": "Mister Bones",
+      "wiki_page": "Mister Bones",
+      "rarity": "ICONIC",
+      "class": "Battle",
+      "aliases": [],
+      "variants": [
+        "DEFAULT"
+      ],
+      "source": "droidex"
+    }
+  ]
+}
